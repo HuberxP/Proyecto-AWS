@@ -6,7 +6,7 @@ import { ref } from 'vue'
 const contenido = ref(0)
 
 onMounted(() =>{
-    axios.get('http://3.94.116.245/usuario')
+    axios.get('http://localhost:3002/usuario')
   .then(function (response) {
     contenido.value = response.data
     
@@ -32,15 +32,19 @@ onMounted(() =>{
                     <tr>
                         <th scope="col" class="px-6 py-3">Nombre</th>
                         <th scope="col" class="px-6 py-3">Apellido</th>
+                        <th scope="col" class="px-6 py-3">Nombre de usuario</th>
+                        <th scope="col" class="px-6 py-3">Contraseña</th>
                         <th scope="col" class="px-6 py-3">Correo</th>
                         <th scope="col" class="px-6 py-3">Número de Teléfono</th>
-                         <th scope="col" class="px-6 py-3">ID</th>
+                        <th scope="col" class="px-6 py-3">ID</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="elemento in contenido" class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                         <td class="px-6 py-4">{{elemento.nombre}}</td>
                         <td class="px-6 py-4">{{elemento.apellido}}</td>
+                        <td class="px-6 py-4">{{elemento.nombre_usuario}}</td>
+                        <td class="px-6 py-4">{{elemento.contraseña}}</td>
                         <td class="px-6 py-4">{{elemento.correo}}</td>
                         <td class="px-6 py-4">{{elemento.telefono}}</td>
                         <td class="px-6 py-4">{{elemento.id}}</td>
