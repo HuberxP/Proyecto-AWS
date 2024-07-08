@@ -1,5 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-
+import ProductsList from '../views/products/ProductsList.vue';
+import RegistroProduct from '../views/products/RegistroProduct.vue';
+import Inicio from '../views/contents/DashBoardView.vue';
+import ClientList  from '../views/clients/ClientsList.vue';
+import RegistroClient from '../views/clients/RegistroClient.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -7,7 +11,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'dashboard',
-      component: () => import('../views/contents/DashBoardView.vue')
+      component: Inicio
     },
   
     {
@@ -15,47 +19,49 @@ const router = createRouter({
       name: 'users',
       component: () => import('../views/users/UserList.vue')
     },
+
+
+
     {
       path: '/clients',
       name: 'clientes',
-      component: () => import('../views/clients/ClientsList.vue')
+      component: ClientList
     },
 
     {
-      path: '/clients/newclient',
+      path: '/clients/new',
       name: 'client-create',
-      component: () => import('../views/clients/RegistroClient.vue')
+      component: RegistroClient
     },
     {
-      path: '/clients/editclient/:id',
+      path: '/clients/edit/:id',
       name: 'client-edit',
-      component: () => import('../views/clients/EditClients.vue')
+      component: RegistroClient
     },
 
     
     
-
+// Rutas para productos 
     {
-      path: '/products',
+      path: '/products',  
       name: 'productos',
-      component: () => import('../views/products/ProductsList.vue')
+      component: ProductsList,
     },
+
+
     {
-      path: '/products/newproduct',
+      path: '/products/new',  // Ruta para crear un nuevo producto
       name: 'product-create',
-      component: () => import('../views/products/RegistroProduct.vue')
+      component: RegistroProduct,
     },
 
     {
-      path: '/products/editproduct/:id',
+      path: '/products/edit/:id',  // Ruta para editar un producto existente, con parámetro dinámico :id
       name: 'product-edit',
-      component: () => import('../views/products/EditProducts.vue')
-    },
-    {
-      path: '/products/delete/:id',
-      name: 'product-delete',
-      component: () => import('../views/products/ProductDelete.vue')
+      component: RegistroProduct,
+      props: true  // Habilita pasar props al componente desde la ruta
     }
+
   ]
 })
 

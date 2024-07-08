@@ -1,0 +1,7 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.CentrarFP {
+    @apply bg-gray-100 flex items-center justify-center pt-5 pb-5;
+}

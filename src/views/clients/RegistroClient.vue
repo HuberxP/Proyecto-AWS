@@ -1,48 +1,104 @@
 <script setup>
-import axios from 'axios';
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue';  // Importación de funciones reactivas y hook de montaje
+import { useRouter, useRoute } from 'vue-router';  // Importación de funciones de enrutamiento de Vue Router
+import { CrearCliente, ObtenerCliente, ActualizarCliente, EliminarCliente } from '@/services/Services';  // Importación de funciones de servicio para clientes
+import Swal from 'sweetalert2';  // Importación de SweetAlert2 para mensajes modales
 
-const nombre = ref('')
-const apellido = ref('')
-const apellido2 = ref('')
-const direccion = ref('')
-const correo = ref('')
-const telefono = ref('')
-const mensaje = ref('')
+const route = useRoute();  // Acceso a la ruta actual
+const router = useRouter();  // Acceso al objeto router para navegación
 
-function crearCliente() {
-  axios.post('http://localhost:3002/clientes', {
-    nombre: nombre.value,
-    apellido: apellido.value,
-    apellido2: apellido2.value,
-    direccion: direccion.value,
-    correo: correo.value,
-    telefono: telefono.value
-  })
-  .then(function (response) {
-    console.log(response);
-    mensaje.value = 'Cliente creado con éxito!';
-    nombre.value = '';
-    apellido.value = '';
-    apellido2.value = '';
-    direccion.value = '';
-    correo.value = '';
-    telefono.value = '';
-  })
-  .catch(function (error) {
-    console.log(error);
-    mensaje.value = 'Error al crear el Cliente';
+// Definición de variables reactivas
+const cliente = ref({
+  nombre: '',
+  apellido: '',
+  apellido2: '',
+  direccion: '',
+  correo: '',
+  telefono: '',
+});
+
+const mensaje = ref('');  // Variable reactiva para mensajes de éxito o error
+const esEdicion = route.name === 'client-edit';  // Booleano que indica si está en modo edición
+
+// Función asincrónica para cargar datos del cliente en modo edición
+const cargarCliente = async () => {
+  try {
+    const { data } = await ObtenerCliente(route.params.id);  // Llamada a la API para obtener datos del cliente por ID
+    const clienteData = data[0];  // Obtención de datos del primer elemento devuelto (suponiendo que ObtenerCliente devuelve una lista)
+    cliente.value = {
+      nombre: clienteData.nombre,
+      apellido: clienteData.apellido,
+      apellido2: clienteData.apellido2,
+      direccion: clienteData.direccion,
+      correo: clienteData.correo,
+      telefono: clienteData.telefono
+    };
+  } catch (error) {
+    console.error('Error al cargar el cliente:', error);  // Manejo de errores si falla la carga del cliente
+    mensaje.value = 'Error al cargar el cliente';
+  }
+};
+
+// Función para guardar cliente (creación o actualización)
+const guardarCliente = async () => {
+  try {
+    if (esEdicion) {
+      await ActualizarCliente(route.params.id, cliente.value);  // Llamada a la API para actualizar cliente existente
+      mensaje.value = 'Cliente actualizado correctamente';
+    } else {
+      await CrearCliente(cliente.value);  // Llamada a la API para crear nuevo cliente
+      mensaje.value = 'Cliente creado correctamente';
+    }
+    router.push({ name: 'clientes' });  // Redirección a la lista de clientes después de guardar
+  } catch (error) {
+    console.error('Error al guardar el cliente:', error);  // Manejo de errores si falla guardar cliente
+    mensaje.value = 'Error al guardar el cliente';
+  }
+};
+
+// Función para eliminar cliente con confirmación mediante SweetAlert2
+const eliminarCliente = async () => {
+  const confirmacion = await Swal.fire({
+    title: '¿Estás seguro?',  // Título del mensaje modal
+    text: '¡No podrás revertir esto!',  // Texto descriptivo en el mensaje modal
+    icon: 'warning',  // Ícono de advertencia en el mensaje modal
+    showCancelButton: true,  // Mostrar botón de cancelar en el mensaje modal
+    confirmButtonColor: '#3085d6',  // Color del botón de confirmación
+    cancelButtonColor: '#d33',  // Color del botón de cancelar
+    confirmButtonText: 'Sí, eliminarlo'  // Texto del botón de confirmación
   });
-}
 
+  if (confirmacion.isConfirmed) {  // Si el usuario confirma la eliminación
+    try {
+      await EliminarCliente(route.params.id);  // Llamada a la API para eliminar el cliente por ID
+      await Swal.fire('¡Eliminado!', 'El cliente ha sido eliminado.', 'success');  // Mensaje de éxito utilizando SweetAlert2
+      router.push({ name: 'clientes' });  // Redirección a la lista de clientes después de eliminar
+    } catch (error) {
+      console.error('Error al eliminar el cliente:', error);  // Manejo de errores si falla eliminar cliente
+      mensaje.value = 'Error al eliminar el cliente';
+    }
+  }
+};
+
+// Cargar el cliente al montar el componente en modo edición
+onMounted(() => {
+  if (esEdicion) {
+    cargarCliente();  // Llama a cargarCliente si está en modo edición al montar el componente
+  }
+});
 </script>
 
 <template>
-  <div class="bg-gray-/ flex items-center justify-center pt-5 pb-5">
+  <div class="bg-gray-200 flex items-center justify-center pt-5 pb-5">
     <div class="bg-white p-8 rounded-lg shadow-lg max-w-sm w-full">
-      <h3 v-if="mensaje" class="text-green-600 text-center">{{ mensaje }}</h3>
-      <br>
-      <br>
+
+      <!-- Mensaje de éxito o error -->
+      <h3 v-if="mensaje" :class="errors ? 'text-red-600' : 'text-green-600 text-center'">{{ mensaje }}</h3>
+      <div v-if="errors" class="text-red-600 text-center mb-4">
+        <div v-for="(error, index) in errors" :key="index">{{ error }}</div>
+      </div>
+      
+      <!-- Icono decorativo -->
       <div class="flex justify-center mb-6">
         <span class="inline-block bg-gray-200 rounded-full p-3">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
@@ -51,47 +107,41 @@ function crearCliente() {
         </span>
       </div>
       
-      <h2 class="text-2xl font-semibold text-center mb-4">Crear un cliente</h2>
+      <!-- Título del formulario -->
+      <h2 class="text-2xl font-semibold text-center mb-4">{{ esEdicion ? 'Actualizar' : 'Crear' }} Cliente</h2>
       
-      <form @submit.prevent="crearCliente" class="bt-10 bottom-5">
+      <!-- Formulario para ingresar datos del cliente -->
+      <form @submit.prevent="guardarCliente">
         <div class="flex space-x-4 mb-4">
-          <input v-model="nombre" type="text" id="fullName" class="form-input w-full px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500 text-center" required placeholder="Nombres">
-          
+          <input v-model="cliente.nombre" type="text" id="fullName" class="form-input w-full px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500 text-center" required placeholder="Nombres">
         </div>
         <div class="flex space-x-4 mb-4">
-          <input v-model="apellido" type="text" id="apellido" class="form-input w-1/2 px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500" required placeholder="Primer Apellido">
-          <input v-model="apellido2" type="text" id="apellido2" class="form-input w-1/2 px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500" required placeholder="Segundo Apellido">
+          <input v-model="cliente.apellido" type="text" id="apellido" class="form-input w-1/2 px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500" required placeholder="Primer Apellido">
+          <input v-model="cliente.apellido2" type="text" id="apellido2" class="form-input w-1/2 px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500" required placeholder="Segundo Apellido">
         </div>
-
-
         <div class="mb-4">
-          <input v-model="telefono" type="number" id="telefono" class="form-input w-full px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500" required placeholder="Telefono">
+          <input v-model="cliente.telefono" type="text" id="telefono" class="form-input w-full px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500" required placeholder="Telefono">
         </div>
-
         <div class="mb-4">
-          <input v-model="correo" type="email" id="email" class="form-input w-full px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500" required placeholder="E-mail">
+          <input v-model="cliente.correo" type="email" id="email" class="form-input w-full px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500" required placeholder="E-mail">
         </div>
-
         <div class="mb-6">
-          <input v-model="direccion" type="text" id="direccion" class="form-input w-full px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500" required placeholder="Direccion">
+          <input v-model="cliente.direccion" type="text" id="direccion" class="form-input w-full px-4 py-2 border rounded-lg text-gray-700 focus:ring-blue-500" required placeholder="Direccion">
           <p class="text-gray-600 text-xs mt-1 text-center">Ingrese telefono o Celular</p>
         </div>
 
-        <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">Crear</button>
-        <br>
-        <br>
-        <button type="button" class="w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"><RouterLink to="/clients" >Cancelar</RouterLink></button>
+        <!-- Botones para guardar, cancelar y eliminar cliente -->
+        <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">{{ esEdicion ? 'Actualizar' : 'Crear' }}</button>
+        <br><br>
+        <button type="button" class="w-full bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50"><RouterLink :to="{ name: 'clientes' }">Cancelar</RouterLink></button>
+        <br><br>
+        <!-- Botón de eliminar con SweetAlert2 -->
+        <button v-if="esEdicion" type="button" class="w-full bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50" @click="eliminarCliente">Eliminar</button>
       </form>
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'UserForm'
-}
-</script>
-
 <style scoped>
-/* Estilos adicionales si son necesarios */
+/* Estilos específicos del componente, si es necesario */
 </style>
